@@ -18,6 +18,7 @@ local StringMT = debug.getmetatable("")
 local NumberMT = debug.getmetatable(0) or {}
 local FunctionMT = debug.getmetatable(function() end) or {}
 local BooleanMT = debug.getmetatable(true) or {}
+local NilMT = debug.getmetatable(nil) or {} --wtf
 
 local stringlib = StringMT.__index
 
@@ -54,6 +55,13 @@ NumberMT.__index = {
 	tostring = function(n)
 		return tostring(n)
 	end,
+	isNan = function(n)
+		return n ~= n
+	end,
+	isInf = function(n)
+		if n < 0 then n = -n end
+		return math.huge == n
+	end
 }
 
 FunctionMT.globalPrototypes = {
@@ -100,9 +108,20 @@ BooleanMT.__mod = function(a, b)
     return a ~= b
 end
 
+NilMT.prototype = {} -- im sorry jon
+
+NilMT.__index = function(self, k)
+	return NilMT.prototype[k]
+end
+
+NilMT.__newindex = function(self, k, v)
+	NilMT.prototype[k] = v
+end
+
 debug.setmetatable("", StringMT)
 debug.setmetatable(0, NumberMT)
 debug.setmetatable(function() end, FunctionMT)
 debug.setmetatable(true, BooleanMT)
+debug.setmetatable(nil, NilMT)
 
 --just kill me already
