@@ -21,6 +21,10 @@ local BooleanMT = debug.getmetatable(true) or {}
 
 local stringlib = StringMT.__index
 
+local function getAddress(str)
+	return loadstring("return 0x"..tostring(str):match("%w+$"))()
+end
+
 stringlib.tonumber = function(n)
 	return tonumber(n)
 end
@@ -52,17 +56,25 @@ NumberMT.__index = {
 	end,
 }
 
-FunctionMT.__index = {
-	dump = function(f)
-		return string.dump(f)
-	end,
-	tostring = function(f)
-		return tostring(f)
-	end,
+FunctionMT.globalPrototypes = {
+	dump = string.dump,
+	tostring = tostring,
 	address = function(f)
-		return (string.match(tostring(func),"%w+$"))
+		return (string.match(tostring(f),"%w+$"))
 	end,
 }
+
+FunctionMT.prototypes = {}
+
+FunctionMT.__index = function(self, k)
+	if not FunctionMT.prototypes[getAddress(self)] then FunctionMT.prototypes[getAddress(self)] = {} end
+	return FunctionMT.prototypes[getAddress(self)][k] or FunctionMT.globalPrototypes[k] or nil
+end
+
+FunctionMT.__newindex = function(self, k, v)
+	if not FunctionMT.prototypes[getAddress(self)] then FunctionMT.prototypes[getAddress(self)] = {} end
+	FunctionMT.prototypes[getAddress(self)][k] = v
+end
 
 FunctionMT.__concat = function(a, b)
 	return function(...)
